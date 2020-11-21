@@ -11,17 +11,50 @@
 # code point of the first character in the category for consistency
 # when adding new labels.
 import os
+import io
 import sys
+import argparse
 
-label_fpath = 'labels.tsv'
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    'infile',
+    default='labels.tsv',
+    action='store',
+    nargs='?',
+)
+
+parser.add_argument(
+    '--run',
+    action='store_true',
+)
+
+args = parser.parse_args()
+print(args)
+
+label_fpath = args.infile
 
 if not os.path.exists(label_fpath):
     print(label_fpath + ' does not exist!', file=sys.stderr)
     sys.exit(-1)
 
-label_file_lines = open(label_fpath, mode='r', encoding='utf-8').readlines()
+original_file_bs = open(label_fpath, mode='rb').read()
+
+label_file_lines = original_file_bs.decode('utf-8').splitlines()
 label_file_lines.sort()
 
-with open(label_fpath, mode='wb') as outfile:
-    for line in label_file_lines:
-        outfile.write(line.encode('utf-8'))
+buffer = io.BytesIO()
+
+for line in label_file_lines:
+    buffer.write((line + '\n').encode('utf-8'))
+
+formatted_bs = buffer.getvalue()
+
+if formatted_bs == original_file_bs:
+    print('OK')
+else:
+    print('Need updated!')
+
+    if args.run:
+        with open(label_fpath, mode='wb') as outfile:
+            outfile.write(formatted_bs)
